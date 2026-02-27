@@ -23,8 +23,15 @@ int main(int argc, char *argv[]) {
       break;
     } else if (strcmp(commande, "echo") == 0) {
       printf("%s\n", arg);
+    } else if (strcmp(commande, "type") == 0) {
+      if (arg && (strcmp(arg, "echo") == 0 || strcmp(arg, "exit") == 0 ||
+                  strcmp(arg, "type") == 0)) {
+        printf("%s is a shell builtin\n", arg);
+      } else {
+        printf("%s: not found\n", arg);
+      }
     } else {
-      printf("%s: command not found\n", input);
+      printf("%s: command not found\n", commande);
     }
   }
 
