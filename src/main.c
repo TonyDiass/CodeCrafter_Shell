@@ -1,9 +1,34 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
 #define MAX_BASH_LINE 200
 #define MAX_ARG_LINE 200
 
+char *path_ok(char *command) {
+  char *env_path = getenv("PATH");
+  if (!env_path || !command)
+    return NULL;
+
+  char *path_copy = strdup(env_path);
+  char *to_free = path_copy;
+  char *dir;
+  static char chemin_complet[512];
+
+  while ((dir = strsep(&path_copy, ":")) != NULL) {
+    if (*dir == '\0')
+      continue;
+    snprintf(chemin_complet, sizeof(chemin_complet), "%s/%s", dir, command);
+    if (access(chemin_complet, X_OK) == 0) {
+      free(to_free);
+      return chemin_complet;
+    }
+  }
+  free(to_free);
+
+  return NULL;
+}
 int main(int argc, char *argv[]) {
   // Flush after every printf
   setbuf(stdout, NULL);
@@ -28,7 +53,11 @@ int main(int argc, char *argv[]) {
                   strcmp(arg, "type") == 0)) {
         printf("%s is a shell builtin\n", arg);
       } else {
-        printf("%s: not found\n", arg);
+        char *path = path_ok(arg);
+        if (path)
+          printf("%s is %s\n", arg, path);
+        else
+          printf("%s: not found\n", arg);
       }
     } else {
       printf("%s: command not found\n", commande);
