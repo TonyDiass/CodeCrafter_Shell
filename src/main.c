@@ -62,7 +62,9 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(args[0], "pwd") == 0) {
       printf("%s\n", getcwd(NULL, 0));
     } else if (strcmp(args[0], "cd") == 0) {
-      if (chdir(args[1]) != 0) {
+      if (strcmp(args[1], "~") == 0) {
+        chdir(getenv("HOME"));
+      } else if (chdir(args[1]) != 0) {
         printf("cd: %s: No such file or directory\n", args[1]);
       }
     } else if (strcmp(args[0], "type") == 0) {
