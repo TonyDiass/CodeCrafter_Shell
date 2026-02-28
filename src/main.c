@@ -59,11 +59,13 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(args[0], "echo") == 0) {
       for (int j = 1; j < i; j++)
         printf("%s%c", args[j], (j == i - 1) ? '\n' : ' ');
+    } else if (strcmp(args[0], "pwd") == 0) {
+      printf("%s\n", getcwd(NULL, 0));
     } else if (strcmp(args[0], "type") == 0) {
       if (i < 2)
         continue;
       if (strcmp(args[1], "echo") == 0 || strcmp(args[1], "exit") == 0 ||
-          strcmp(args[1], "type") == 0)
+          strcmp(args[1], "type") == 0 || strcmp(args[1], "pwd") == 0)
         printf("%s is a shell builtin\n", args[1]);
       else {
         char *p = find_in(args[1]);
