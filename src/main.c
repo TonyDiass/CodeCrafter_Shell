@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 #define MAX_BASH_LINE 200
+#define MAX_ARG 200
 
 char *find_in(char *command) {
   char *env_path = getenv("PATH");
@@ -41,7 +42,7 @@ int main(int argc, char *argv[]) {
     fgets(input, sizeof(input), stdin);
     input[strcspn(input, "\n")] = 0;
 
-    char **args;
+    char *args[MAX_ARG];
     int i = 0;
     char *token = strtok(input, " ");
     while (token != NULL) {
@@ -49,6 +50,9 @@ int main(int argc, char *argv[]) {
       token = strtok(NULL, " ");
     }
     args[i] = NULL;
+
+    if (i == 0)
+      continue;
 
     if (strcmp(args[0], "exit") == 0) {
       break;
