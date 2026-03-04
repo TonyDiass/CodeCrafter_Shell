@@ -36,32 +36,20 @@ int parse_input(char *input, char **args) {
   char buffer[MAX_BASH_LINE];
   int buf_idx = 0;
   bool in_single_quotes = false;
-<<<<<<< HEAD
-=======
-  bool in_double_quotes = false;
->>>>>>> d5f6f1f (codecrafters submit [skip ci])
 
   for (int i = 0; input[i] != '\0'; i++) {
     char c = input[i];
 
-<<<<<<< HEAD
-    if (c == '\'') {
-      in_single_quotes = !in_single_quotes;
-    } else if (c == ' ' && !in_single_quotes) {
-=======
     if (c == '\"' && !in_single_quotes) {
       in_double_quotes = !in_double_quotes;
     } else if (c == '\'' && !in_double_quotes) {
       in_single_quotes = !in_single_quotes;
     } else if (c == ' ' && !in_single_quotes && !in_double_quotes) {
->>>>>>> d5f6f1f (codecrafters submit [skip ci])
       if (buf_idx > 0) {
         buffer[buf_idx] = '\0';
         args[arg_count++] = strdup(buffer);
         buf_idx = 0;
       }
-    } else if (c == '\\' && !in_single_quotes && !in_double_quotes) {
-      buffer[buf_idx++] = input[++i];
     } else {
       buffer[buf_idx++] = c;
     }
