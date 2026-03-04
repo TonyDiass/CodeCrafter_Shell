@@ -60,6 +60,8 @@ int parse_input(char *input, char **args) {
         args[arg_count++] = strdup(buffer);
         buf_idx = 0;
       }
+    } else if (c == '\\' && !in_single_quotes && !in_double_quotes) {
+      buffer[buf_idx++] = input[++i];
     } else {
       buffer[buf_idx++] = c;
     }
