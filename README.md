@@ -1,34 +1,66 @@
 [![progress-banner](https://backend.codecrafters.io/progress/shell/0839e248-79ad-416e-b01a-9ec9d0fd38d6)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-This is a starting point for C solutions to the
-["Build Your Own Shell" Challenge](https://app.codecrafters.io/courses/shell/overview).
 
-In this challenge, you'll build your own POSIX compliant shell that's capable of
-interpreting shell commands, running external programs and builtin commands like
-cd, pwd, echo and more. Along the way, you'll learn about shell command parsing,
-REPLs, builtin commands, and more.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+# Custom POSIX Shell in C
 
-# Passing the first stage
 
-The entry point for your `shell` implementation is in `src/main.c`. Study and
-uncomment the relevant code, then run the command below to execute the tests on
-our servers:
 
-```sh
-codecrafters submit
-```
+This repository contains my custom implementation of a POSIX-compliant shell in C, built as part of the [CodeCrafters "Build Your Own Shell" challenge](https://app.codecrafters.io/courses/shell/overview). 
 
-Time to move on to the next stage!
+---
 
-# Stage 2 & beyond
 
-Note: This section is for stages 2 and beyond.
 
-1. Ensure you have `cmake` installed locally
-1. Run `./your_program.sh` to run your program, which is implemented in
-   `src/main.c`.
-1. Commit your changes and run `git push origin master` to submit your solution
-   to CodeCrafters. Test output will be streamed to your terminal.
+## 🚀 Features
+
+
+
+This custom shell implementation currently supports the following functionalities:
+
+
+
+### 1. Built-in Commands
+
+The shell natively handles the following commands without spawning external processes:
+
+- `exit`: Gracefully terminates the shell.
+
+- `echo`: Prints arguments to standard output.
+
+- `pwd`: Displays the current working directory.
+
+- `cd`: Changes the current directory (supports relative/absolute paths and `~` for HOME).
+
+- `type`: Identifies whether a command is a built-in or an external executable.
+
+
+
+### 2. External Program Execution
+
+- Parses the `$PATH` environment variable to locate and execute external binaries (e.g., `ls`, `cat`).
+
+- Uses `fork()` and `execv()` to run programs in child processes while the main shell waits.
+
+
+
+### 3. Advanced Input Parsing
+
+- **Quotes Support:** Accurately parses arguments enclosed in single quotes (`'...'`) and double quotes (`"..."`).
+
+- **Escape Characters:** Handles the backslash (`\`) escape character inside and outside of quotes.
+
+
+
+### 4. Output Redirection
+
+- Supports redirecting `stdout` (`1>`) and `stderr` (`2>`) to files.
+
+- Handles truncation (`>`) and append mode (`>>`).
+
+
+
+
+
+
+
