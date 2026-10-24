@@ -1,4 +1,6 @@
 #include <fcntl.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,20 +195,46 @@ void ExecuteCommand(char **args, int arg_count) {
   }
 }
 
+char *CommandGenerator(const char *text, int state) {
+  static int list_index, len;
+  char *builtins[] = {"echo", "exit", "pwd", "cd", "type", NULL};
+
+  if (!state) {
+    list_index = 0;
+    len = strlen(text);
+  }
+
+  char *name;
+  while ((name = builtins[list_index++]) != NULL) {
+    if (strncmp(name, text, len) == 0) {
+      return strdup(name);
+    }
+  }
+  return NULL;
+}
+
+char **CommandCompletion(const char *text, int start, int end) {
+  return rl_completion_matches(text, CommandGenerator);
+}
+
 int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
+
+  rl_attempted_completion_function = CommandCompletion;
+  using_history();
 
   while (1) {
     command cmd = {0};
     redirection redir = {0};
 
-    printf("$ ");
-    char input[MAX_BASH_LINE];
-    if (!fgets(input, sizeof(input), stdin))
+    char *input = readline("$ ");
+    if (!input)
       break;
-    input[strcspn(input, "\n")] = 0;
+
+    add_history(input);
 
     ParseInput(input, &cmd, &redir);
+    free(input);
 
     if (cmd.arg_count == 0)
       continue;
