@@ -10,7 +10,7 @@
 #define MAX_ARG 200
 
 typedef struct command {
-  char **args;
+  char *args[MAX_ARG];
   int arg_count;
 } command;
 
@@ -168,16 +168,10 @@ void ExecuteCommand(char **args, int arg_count) {
 int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
-  command *cmd = malloc(sizeof(command));
-  cmd->args = malloc(sizeof(char *) * MAX_ARG);
-  redirection *redir = malloc(sizeof(redirection));
-
   while (1) {
-    redir->active = false;
-    redir->output_file = NULL;
-    redir->fd = 1;
-    redir->append = false;
-    cmd->arg_count = 0;
+
+    command cmd = {0};
+    redirection redir = {0};
 
     printf("$ ");
     char input[MAX_BASH_LINE];
@@ -185,52 +179,39 @@ int main(int argc, char *argv[]) {
       break;
     input[strcspn(input, "\n")] = 0;
 
-    ParseInput(input, cmd, redir);
+    ParseInput(input, &cmd, &redir);
 
-    if (cmd->arg_count == 0)
+    if (cmd.arg_count == 0)
       continue;
 
-    int open_flags = O_WRONLY | O_CREAT;
-    if (redir->append) {
-      open_flags |= O_APPEND;
-    } else {
-      open_flags |= O_TRUNC;
-    }
+    int open_flags = O_WRONLY | O_CREAT | (redir.append ? O_APPEND : O_TRUNC);
 
-    if (redir->active && redir->output_file != NULL) {
-      int file_fd = open(redir->output_file, open_flags, 0644);
+    if (redir.active && redir.output_file != NULL) {
+      int file_fd = open(redir.output_file, open_flags, 0644);
       if (file_fd < 0) {
         fprintf(stderr, "Erreur d'ouverture du fichier\n");
       } else {
-        int target_fd = (redir->fd == 2) ? STDERR_FILENO : STDOUT_FILENO;
-
+        int target_fd = (redir.fd == 2) ? STDERR_FILENO : STDOUT_FILENO;
         int saved_fd = dup(target_fd);
+
         dup2(file_fd, target_fd);
         close(file_fd);
 
-        ExecuteCommand(cmd->args, cmd->arg_count);
+        ExecuteCommand(cmd.args, cmd.arg_count);
 
         fflush(stdout);
         fflush(stderr);
-
         dup2(saved_fd, target_fd);
         close(saved_fd);
       }
     } else {
-      ExecuteCommand(cmd->args, cmd->arg_count);
+      ExecuteCommand(cmd.args, cmd.arg_count);
     }
 
-    for (int k = 0; k < cmd->arg_count; k++) {
-      free(cmd->args[k]);
-    }
-    if (redir->output_file != NULL) {
-      free(redir->output_file);
-    }
+    for (int k = 0; k < cmd.arg_count; k++)
+      free(cmd.args[k]);
+    free(redir.output_file);
   }
-
-  free(cmd->args);
-  free(cmd);
-  free(redir);
 
   return 0;
 }
