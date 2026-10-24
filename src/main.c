@@ -1,3 +1,4 @@
+#include <dirent.h>
 #include <fcntl.h>
 #include <readline/history.h>
 #include <readline/readline.h>
@@ -196,20 +197,52 @@ void ExecuteCommand(char **args, int arg_count) {
 }
 
 char *CommandGenerator(const char *text, int state) {
-  static int list_index, len;
-  char *builtins[] = {"echo", "exit", "pwd", "cd", "type", NULL};
+  static char *matches[1024];
+  static int match_count = 0;
+  static int match_index = 0;
 
-  if (!state) {
-    list_index = 0;
-    len = strlen(text);
-  }
+  if (state == 0) {
+    match_count = 0;
+    match_index = 0;
+    int len = strlen(text);
 
-  char *name;
-  while ((name = builtins[list_index++]) != NULL) {
-    if (strncmp(name, text, len) == 0) {
-      return strdup(name);
+    char *builtins[] = {"echo", "exit", "pwd", "cd", "type", NULL};
+    for (int i = 0; builtins[i]; i++) {
+      if (strncmp(builtins[i], text, len) == 0)
+        matches[match_count++] = strdup(builtins[i]);
+    }
+
+    char *env_path = getenv("PATH");
+    if (env_path) {
+      char *path_copy = strdup(env_path);
+      char *to_free = path_copy;
+      char *dir_path;
+
+      while ((dir_path = strsep(&path_copy, ":")) != NULL) {
+        DIR *d = opendir(dir_path); // On ouvre le dossier
+        if (!d)
+          continue;
+
+        struct dirent *file;
+        while ((file = readdir(d)) != NULL) {
+          if (strncmp(file->d_name, text, len) == 0) {
+            char full_path[1024];
+            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path,
+                     file->d_name);
+            if (access(full_path, X_OK) == 0 && match_count < 1024) {
+              matches[match_count++] = strdup(file->d_name);
+            }
+          }
+        }
+        closedir(d);
+      }
+      free(to_free);
     }
   }
+
+  if (match_index < match_count)
+    return matches[match_index++];
+
   return NULL;
 }
 
