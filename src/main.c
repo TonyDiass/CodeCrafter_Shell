@@ -21,6 +21,8 @@ typedef struct redirection {
   char *output_file;
 } redirection;
 
+typedef enum { NONE = 0, EXIT, ECHO, PWD, CD, TYPE } BuiltinType;
+
 char *FindPath(char *cmd) {
   char *env_path = getenv("PATH");
   if (!env_path || !cmd)
@@ -29,7 +31,7 @@ char *FindPath(char *cmd) {
   char *path_copy = strdup(env_path);
   char *to_free = path_copy;
   char *dir;
-  static char path[512];
+  static char path[1024];
 
   while ((dir = strsep(&path_copy, ":")) != NULL) {
     if (*dir == '\0')
@@ -59,6 +61,7 @@ void ParseInput(char *input, command *cmd, redirection *redir) {
       if (buf_idx > 0) {
         buffer[buf_idx] = '\0';
         if (expecting_file) {
+          free(redir->output_file);
           redir->output_file = strdup(buffer);
           expecting_file = false;
         } else {
@@ -109,41 +112,6 @@ void ParseInput(char *input, command *cmd, redirection *redir) {
   cmd->arg_count = arg_count;
 }
 
-bool IsBuiltin(char *cmd) {
-  char *builtins[] = {"exit", "echo", "pwd", "cd", "type", NULL};
-  for (int i = 0; builtins[i]; i++)
-    if (strcmp(cmd, builtins[i]) == 0)
-      return true;
-  return false;
-}
-
-void ExecuteBuiltin(char **args, int arg_count) {
-  if (strcmp(args[0], "exit") == 0)
-    exit(0);
-
-  if (strcmp(args[0], "echo") == 0) {
-    for (int i = 1; i < arg_count; i++)
-      printf("%s%s", args[i], (i == arg_count - 1) ? "" : " ");
-    printf("\n");
-  } else if (strcmp(args[0], "pwd") == 0) {
-    printf("%s\n", getcwd(NULL, 0));
-  } else if (strcmp(args[0], "cd") == 0) {
-    char *path =
-        (arg_count > 1 && strcmp(args[1], "~") == 0) ? getenv("HOME") : args[1];
-    if (chdir(path) != 0)
-      printf("cd: %s: No such file or directory\n", args[1]);
-  } else if (strcmp(args[0], "type") == 0) {
-    if (arg_count < 2)
-      return;
-    if (IsBuiltin(args[1]))
-      printf("%s is a shell builtin\n", args[1]);
-    else {
-      char *p = FindPath(args[1]);
-      p ? printf("%s is %s\n", args[1], p) : printf("%s: not found\n", args[1]);
-    }
-  }
-}
-
 void ExecuteExternal(char **args) {
   char *path = FindPath(args[0]);
   if (path) {
@@ -157,9 +125,69 @@ void ExecuteExternal(char **args) {
   }
 }
 
+BuiltinType GetBuiltinType(char *cmd) {
+  if (!cmd)
+    return NONE;
+  if (strcmp(cmd, "exit") == 0)
+    return EXIT;
+  if (strcmp(cmd, "echo") == 0)
+    return ECHO;
+  if (strcmp(cmd, "pwd") == 0)
+    return PWD;
+  if (strcmp(cmd, "cd") == 0)
+    return CD;
+  if (strcmp(cmd, "type") == 0)
+    return TYPE;
+  return NONE;
+}
+
+void ExecuteBuiltin(BuiltinType type, char **args, int arg_count) {
+  switch (type) {
+  case EXIT:
+    exit(0);
+
+  case ECHO:
+    for (int i = 1; i < arg_count; i++)
+      printf("%s%s", args[i], (i == arg_count - 1) ? "" : " ");
+    printf("\n");
+    break;
+
+  case PWD: {
+    char cwd[1024];
+    if (getcwd(cwd, sizeof(cwd)))
+      printf("%s\n", cwd);
+    break;
+  }
+
+  case CD: {
+    char *path =
+        (arg_count > 1 && strcmp(args[1], "~") == 0) ? getenv("HOME") : args[1];
+    if (chdir(path) != 0)
+      printf("cd: %s: No such file or directory\n", args[1]);
+    break;
+  }
+
+  case TYPE:
+    if (arg_count < 2)
+      return;
+    if (GetBuiltinType(args[1]) != NONE) {
+      printf("%s is a shell builtin\n", args[1]);
+    } else {
+      char *path = FindPath(args[1]);
+      path ? printf("%s is %s\n", args[1], path)
+           : printf("%s: not found\n", args[1]);
+    }
+    break;
+
+  default:
+    break;
+  }
+}
+
 void ExecuteCommand(char **args, int arg_count) {
-  if (IsBuiltin(args[0])) {
-    ExecuteBuiltin(args, arg_count);
+  BuiltinType type = GetBuiltinType(args[0]);
+  if (type != NONE) {
+    ExecuteBuiltin(type, args, arg_count);
   } else {
     ExecuteExternal(args);
   }
@@ -169,7 +197,6 @@ int main(int argc, char *argv[]) {
   setbuf(stdout, NULL);
 
   while (1) {
-
     command cmd = {0};
     redirection redir = {0};
 
